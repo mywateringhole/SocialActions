@@ -6,7 +6,7 @@ export const towerHamletsConfig: CouncilScraperConfig = {
   slug: "tower-hamlets",
   region: "London",
   transparencyUrl:
-    "https://www.towerhamlets.gov.uk/lgnl/council_and_democracy/council_spending/spending_over_250.aspx",
+    "https://www.towerhamlets.gov.uk/lgnl/council_and_democracy/Transparency/payments_to_suppliers.aspx",
   websiteUrl: "https://www.towerhamlets.gov.uk",
 
   filePatterns: {
