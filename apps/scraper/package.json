@@ -1,0 +1,26 @@
+{
+  "name": "scraper",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "scrape": "tsx src/index.ts",
+    "scrape:tower-hamlets": "tsx src/index.ts --council tower-hamlets"
+  },
+  "dependencies": {
+    "@socialactions/db": "workspace:*",
+    "drizzle-orm": "^0.38.0",
+    "cheerio": "^1.0.0",
+    "node-cron": "^3.0.0",
+    "papaparse": "^5.4.0",
+    "postgres": "^3.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/node-cron": "^3.0.0",
+    "@types/papaparse": "^5.3.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
