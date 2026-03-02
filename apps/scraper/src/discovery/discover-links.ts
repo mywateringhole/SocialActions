@@ -3,14 +3,25 @@ import type { CouncilScraperConfig, DiscoveredFile } from "../councils/types";
 
 /**
  * Scrapes a council's transparency page HTML and extracts CSV/XLSX download links.
- * Links are classified as payment_250 or pcard based on the council's file patterns.
+ * If a council has a customDiscovery function, uses that instead.
  */
 export async function discoverLinks(
   config: CouncilScraperConfig
 ): Promise<DiscoveredFile[]> {
+  // Use custom discovery if provided
+  if (config.customDiscovery) {
+    return config.customDiscovery(config);
+  }
+
   console.log(`[discover] Fetching ${config.transparencyUrl}`);
 
-  const response = await fetch(config.transparencyUrl);
+  const response = await fetch(config.transparencyUrl, {
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (compatible; SocialActions/1.0; +https://github.com/socialactions)",
+      ...config.fetchHeaders,
+    },
+  });
   if (!response.ok) {
     throw new Error(
       `Failed to fetch transparency page: ${response.status} ${response.statusText}`
@@ -27,8 +38,12 @@ export async function discoverLinks(
     const href = $(element).attr("href");
     if (!href) return;
 
-    // Only match CSV/XLSX files
-    if (!/\.(csv|xlsx?)$/i.test(href)) return;
+    // Match CSV/XLSX files, or links whose URL path suggests a downloadable file
+    const isDataFile =
+      /\.(csv|xlsx?)$/i.test(href) ||
+      /\/(downloads\/file|download)\//i.test(href);
+
+    if (!isDataFile) return;
 
     const absoluteUrl = new URL(href, config.transparencyUrl).toString();
     if (seen.has(absoluteUrl)) return;
@@ -44,7 +59,7 @@ export async function discoverLinks(
       discovered.push({
         url: absoluteUrl,
         fileType,
-        filename,
+        filename: filename || linkText.replace(/\s+/g, "-").substring(0, 80),
       });
     }
   });

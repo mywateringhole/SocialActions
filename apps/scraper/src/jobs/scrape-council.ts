@@ -29,6 +29,12 @@ export async function scrapeCouncil(
   const councilId = await ensureCouncil(db, config);
   const jobId = await createScrapeJob(db, councilId, "full");
 
+  const parseOptions = {
+    skipRows: config.skipRows ?? 0,
+    minColumns: config.minColumns,
+    headerKeywords: config.headerKeywords,
+  };
+
   const stats = {
     filesDiscovered: 0,
     filesProcessed: 0,
@@ -56,7 +62,13 @@ export async function scrapeCouncil(
         console.log(`\n[scrape] Processing: ${file.filename} (${file.fileType})`);
 
         // 3. DOWNLOAD: Fetch CSV content
-        const response = await fetch(file.url);
+        const response = await fetch(file.url, {
+          headers: {
+            "User-Agent":
+              "Mozilla/5.0 (compatible; SocialActions/1.0; +https://github.com/socialactions)",
+            ...config.fetchHeaders,
+          },
+        });
         if (!response.ok) {
           const err = `Failed to download ${file.url}: ${response.status}`;
           console.error(`[scrape] ${err}`);
@@ -64,7 +76,20 @@ export async function scrapeCouncil(
           continue;
         }
 
-        const csvText = await response.text();
+        // Handle encoding - try to decode as UTF-8, fall back to latin-1
+        const buffer = await response.arrayBuffer();
+        let csvText: string;
+        try {
+          csvText = new TextDecoder("utf-8", { fatal: true }).decode(buffer);
+        } catch {
+          csvText = new TextDecoder("latin1").decode(buffer);
+        }
+
+        // Strip BOM if present
+        if (csvText.charCodeAt(0) === 0xfeff) {
+          csvText = csvText.slice(1);
+        }
+
         const contentHash = hashContent(csvText);
 
         // 4. CHECK: Skip if already processed
@@ -84,7 +109,8 @@ export async function scrapeCouncil(
         if (file.fileType === "payment_250") {
           const records = parsePayment250Csv(
             csvText,
-            config.columnMappings.payment250
+            config.columnMappings.payment250,
+            parseOptions
           );
           console.log(`[scrape] Parsed ${records.length} payment records`);
 
@@ -94,7 +120,8 @@ export async function scrapeCouncil(
         } else if (file.fileType === "pcard" && config.columnMappings.pcard) {
           const records = parsePcardCsv(
             csvText,
-            config.columnMappings.pcard
+            config.columnMappings.pcard,
+            parseOptions
           );
           console.log(`[scrape] Parsed ${records.length} pcard records`);
 

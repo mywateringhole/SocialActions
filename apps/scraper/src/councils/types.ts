@@ -20,6 +20,35 @@ export interface CouncilScraperConfig {
 
   /** Date format used in CSVs (default: DD/MM/YYYY) */
   dateFormat?: string;
+
+  /**
+   * Number of rows to skip at the top of CSV files before headers/data.
+   * e.g., LBBD has a title row before the header row.
+   */
+  skipRows?: number;
+
+  /**
+   * Minimum number of columns required for a valid payment row.
+   * Defaults to 9 (Tower Hamlets). Override for councils with fewer columns.
+   */
+  minColumns?: number;
+
+  /**
+   * Custom discovery function for councils that don't follow the standard
+   * HTML → CSV link pattern (e.g., Google Drive links, two-level pages).
+   */
+  customDiscovery?: (config: CouncilScraperConfig) => Promise<DiscoveredFile[]>;
+
+  /**
+   * Custom fetch headers for councils with bot-blocking.
+   */
+  fetchHeaders?: Record<string, string>;
+
+  /**
+   * Additional header keywords for this council's CSV files.
+   * Merged with the default set during header detection.
+   */
+  headerKeywords?: string[];
 }
 
 export interface Payment250ColumnMap {
