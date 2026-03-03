@@ -11,6 +11,7 @@ interface CouncilCardProps {
   totalPayments: number;
   totalSpend: number;
   anomalyCount: number;
+  maxSpend?: number;
 }
 
 export function CouncilCard({
@@ -20,15 +21,20 @@ export function CouncilCard({
   totalPayments,
   totalSpend,
   anomalyCount,
+  maxSpend,
 }: CouncilCardProps) {
+  const spendPercent = maxSpend && maxSpend > 0 ? (totalSpend / maxSpend) * 100 : 0;
+
   return (
     <a href={`/councils/${slug}`}>
-      <Card className="hover:shadow-md transition-shadow cursor-pointer">
+      <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between">
             <CardTitle className="text-lg">{name}</CardTitle>
             {anomalyCount > 0 && (
-              <Badge variant="destructive">{anomalyCount} flags</Badge>
+              <Badge variant="destructive" className="shrink-0">
+                {anomalyCount} flags
+              </Badge>
             )}
           </div>
           <p className="text-sm text-muted-foreground">{region}</p>
@@ -44,6 +50,16 @@ export function CouncilCard({
               <p className="font-semibold">{formatNumber(totalPayments)}</p>
             </div>
           </div>
+          {maxSpend && maxSpend > 0 && (
+            <div className="mt-3">
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full transition-all"
+                  style={{ width: `${Math.max(spendPercent, 2)}%` }}
+                />
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </a>

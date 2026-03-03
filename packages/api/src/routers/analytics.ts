@@ -23,6 +23,52 @@ export const analyticsRouter = router({
     };
   }),
 
+  /** Per-council spend comparison for cross-council charts */
+  crossCouncilComparison: publicProcedure.query(async ({ ctx }) => {
+    return ctx.db
+      .select({
+        councilId: payments.councilId,
+        councilName: councils.name,
+        councilSlug: councils.slug,
+        totalSpend: sql<string>`sum(${payments.netAmount}::numeric)`,
+        transactionCount: sql<number>`count(*)`,
+        avgPayment: sql<string>`avg(${payments.netAmount}::numeric)`,
+        supplierCount: sql<number>`count(distinct ${payments.supplierNameNormalized})`,
+      })
+      .from(payments)
+      .innerJoin(councils, eq(payments.councilId, councils.id))
+      .groupBy(payments.councilId, councils.name, councils.slug)
+      .orderBy(desc(sql`sum(${payments.netAmount}::numeric)`));
+  }),
+
+  /** Monthly trend across all councils (for overlay chart) */
+  crossCouncilTrend: publicProcedure
+    .input(
+      z.object({
+        months: z.number().min(6).max(120).optional().default(24),
+      }).optional()
+    )
+    .query(async ({ ctx, input }) => {
+      const months = input?.months ?? 24;
+      return ctx.db
+        .select({
+          month: sql<string>`date_trunc('month', ${payments.paymentDate}::timestamp)::date`,
+          councilId: payments.councilId,
+          councilName: councils.name,
+          totalAmount: sql<string>`sum(${payments.netAmount}::numeric)`,
+          transactionCount: sql<number>`count(*)`,
+        })
+        .from(payments)
+        .innerJoin(councils, eq(payments.councilId, councils.id))
+        .where(sql`${payments.paymentDate} IS NOT NULL AND ${payments.paymentDate}::timestamp >= now() - interval '${sql.raw(String(months))} months'`)
+        .groupBy(
+          sql`date_trunc('month', ${payments.paymentDate}::timestamp)`,
+          payments.councilId,
+          councils.name
+        )
+        .orderBy(sql`date_trunc('month', ${payments.paymentDate}::timestamp)`);
+    }),
+
   /** Monthly spending trend for a council */
   monthlyTrend: publicProcedure
     .input(

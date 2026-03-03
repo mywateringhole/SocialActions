@@ -2,6 +2,8 @@ import { caller } from "@/lib/trpc-server";
 import { StatCard } from "@/components/cards/stat-card";
 import { CouncilCard } from "@/components/cards/council-card";
 import { AnomalyCard } from "@/components/cards/anomaly-card";
+import { CrossCouncilComparison } from "@/components/charts/cross-council-comparison";
+import { CrossCouncilTrend } from "@/components/charts/cross-council-trend";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -11,17 +13,32 @@ export default async function HomePage() {
   let councils: Awaited<ReturnType<typeof caller.councils.list>> = [];
   let anomalySummary = { high: 0, medium: 0, low: 0, total: 0 };
   let recentAnomalies: Awaited<ReturnType<typeof caller.anomalies.list>> = { data: [], total: 0, limit: 5, offset: 0 };
+  let comparison: Awaited<ReturnType<typeof caller.analytics.crossCouncilComparison>> = [];
+  let trend: Awaited<ReturnType<typeof caller.analytics.crossCouncilTrend>> = [];
 
   try {
-    [overview, councils, anomalySummary, recentAnomalies] = await Promise.all([
+    [overview, councils, anomalySummary, recentAnomalies, comparison, trend] = await Promise.all([
       caller.analytics.overview(),
       caller.councils.list(),
       caller.anomalies.summary(),
       caller.anomalies.list({ limit: 5 }),
+      caller.analytics.crossCouncilComparison(),
+      caller.analytics.crossCouncilTrend({ months: 24 }),
     ]);
   } catch {
     // DB not available - show empty state
   }
+
+  const comparisonData = comparison.map((c) => ({
+    councilName: c.councilName,
+    councilSlug: c.councilSlug,
+    totalSpend: Number(c.totalSpend),
+    transactionCount: Number(c.transactionCount),
+    supplierCount: Number(c.supplierCount),
+    avgPayment: Number(c.avgPayment),
+  }));
+
+  const maxSpend = Math.max(...comparisonData.map((c) => c.totalSpend), 1);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -37,7 +54,7 @@ export default async function HomePage() {
       </section>
 
       {/* Summary Stats */}
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+      <section className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-12">
         <StatCard
           title="Total Spend Tracked"
           value={formatCurrency(overview.totalSpend)}
@@ -51,6 +68,10 @@ export default async function HomePage() {
           value={String(overview.councilCount)}
         />
         <StatCard
+          title="Suppliers"
+          value={formatNumber(overview.supplierCount)}
+        />
+        <StatCard
           title="Anomalies Flagged"
           value={String(anomalySummary.total)}
           subtitle={
@@ -61,7 +82,15 @@ export default async function HomePage() {
         />
       </section>
 
-      {/* Council Grid */}
+      {/* Cross-Council Charts */}
+      {comparisonData.length > 1 && (
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
+          <CrossCouncilComparison data={comparisonData} />
+          {trend.length > 0 && <CrossCouncilTrend data={trend} />}
+        </section>
+      )}
+
+      {/* Council Grid with relative spend bars */}
       {councils.length > 0 && (
         <section className="mb-12">
           <div className="flex justify-between items-center mb-6">
@@ -70,7 +99,7 @@ export default async function HomePage() {
               href="/councils"
               className="text-sm text-muted-foreground hover:underline"
             >
-              View all
+              View all &rarr;
             </a>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -83,6 +112,7 @@ export default async function HomePage() {
                 totalPayments={council.totalPayments}
                 totalSpend={council.totalSpend}
                 anomalyCount={council.anomalyCount}
+                maxSpend={maxSpend}
               />
             ))}
           </div>
@@ -98,7 +128,7 @@ export default async function HomePage() {
               href="/anomalies"
               className="text-sm text-muted-foreground hover:underline"
             >
-              View all
+              View all &rarr;
             </a>
           </div>
           <div className="space-y-4">

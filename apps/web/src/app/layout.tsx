@@ -37,10 +37,22 @@ export default function RootLayout({
                       Councils
                     </a>
                     <a
+                      href="/suppliers"
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Suppliers
+                    </a>
+                    <a
                       href="/anomalies"
                       className="text-muted-foreground hover:text-foreground transition-colors"
                     >
                       Anomalies
+                    </a>
+                    <a
+                      href="/admin/status"
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Status
                     </a>
                   </nav>
                 </div>

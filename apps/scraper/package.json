@@ -6,7 +6,9 @@
   "scripts": {
     "build": "tsc",
     "scrape": "tsx src/index.ts",
-    "scrape:tower-hamlets": "tsx src/index.ts --council tower-hamlets"
+    "scrape:tower-hamlets": "tsx src/index.ts --council tower-hamlets",
+    "scheduler": "tsx src/scheduler.ts",
+    "scheduler:now": "tsx src/scheduler.ts --now"
   },
   "dependencies": {
     "@socialactions/db": "workspace:*",
